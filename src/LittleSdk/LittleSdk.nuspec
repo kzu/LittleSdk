@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>LittleSdk</id>
+    <version>1.0.0</version>
+    <authors>kzu</authors>
+    <owners>kzu</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>LittleSdk</description>
+    <releaseNotes>LittleSdk</releaseNotes>
+    <copyright>Copyright 2015</copyright>
+  </metadata>
+</package>
