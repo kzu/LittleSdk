@@ -10,4 +10,8 @@
     <releaseNotes>LittleSdk</releaseNotes>
     <copyright>Copyright 2015</copyright>
   </metadata>
+	<files>
+		<file src="LittleSdk\bin\$Configuration$\LittleSdk.dll" target="lib\net45" />
+		<file src="LittleSdk\bin\$Configuration$\LittleSdk.pdb" target="lib\net45" />
+	</files>
 </package>
