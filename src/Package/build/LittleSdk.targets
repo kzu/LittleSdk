@@ -1,0 +1,111 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <IsXBuild Condition="'$(MSBuildRuntimeVersion)' == ''">true</IsXBuild>
+    <ResolveReferencesDependsOn Condition=" '$(IsXBuild)' == 'true' ">
+      <!-- Under Xbuild, just include the binary -->
+      LittleSdk:AddAssemblyReference;
+      $(ResolveReferencesDependsOn)
+    </ResolveReferencesDependsOn>
+    <ResolveReferencesDependsOn Condition=" '$(IsXBuild)' != 'true' ">
+      LittleSdk:AddSmartReference;
+      $(ResolveReferencesDependsOn)
+    </ResolveReferencesDependsOn>
+    <CompileDependsOn Condition=" '$(IsXBuild)' == 'true' ">
+      <!-- Under Xbuild, just include the binary -->
+      LittleSdk:AddAssemblyReference;
+      $(CompileDependsOn)
+    </CompileDependsOn>
+    <CompileDependsOn Condition=" '$(IsXBuild)' != 'true' ">
+      LittleSdk:AddSmartReference;
+      $(CompileDependsOn);
+    </CompileDependsOn>
+    <AddLittleSdkSmartReferenceDependsOn>
+      LittleSdk:DetectSubmodule;
+      LittleSdk:CollectSubmoduleDependencies;
+      LittleSdk:CompileSubmodule;
+      LittleSdk:AddSubmoduleReference;
+      LittleSdk:AddAssemblyReference;
+    </AddLittleSdkSmartReferenceDependsOn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <LittleSdkReference Include="LittleSdk">
+      <AssemblyName>LittleSdk</AssemblyName>
+      <AssemblyFile>$(MSBuildThisFileDirectory)LittleSdk.dll</AssemblyFile>
+      <RepositoryName>LittleSdk</RepositoryName>
+      <RelativeSource>src\LittleSdk\LittleSdk.csproj</RelativeSource>
+      <IsSubmodule>false</IsSubmodule>
+    </LittleSdkReference>
+  </ItemGroup>
+
+  <Target Name="LittleSdk:AddAssemblyReference" Condition=" @(LittleSdkReference -> '%(IsSubmodule)') == 'false' ">
+    <ItemGroup>
+      <Reference Include="%(LittleSdkReference.AssemblyName)">
+        <HintPath>%(LittleSdkReference.AssemblyFile)</HintPath>
+        <Private>True</Private>
+      </Reference>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="LittleSdk:AddSmartReference" DependsOnTargets="$(AddLittleSdkSmartReferenceDependsOn)" />
+
+  <Target Name="LittleSdk:DetectSubmodule">
+
+    <PropertyGroup>
+      <SubmodulePathExpr>\[submodule[^\]]+\]\s+path\s?=\s?(?&lt;path&gt;[^\s]+).*?\/%(LittleSdkReference.RepositoryName)\.git</SubmodulePathExpr>
+      <GitSubmodulesFile>$([System.IO.Path]::Combine('$(GitRoot)', '.gitmodules'))</GitSubmodulesFile>
+      <GitSubmodulesFile>$([System.IO.Path]::GetFullPath('$(GitSubmodulesFile)'))</GitSubmodulesFile>
+    </PropertyGroup>
+    <PropertyGroup Condition=" Exists('$(GitSubmodulesFile)') ">
+      <GitSubmodulesContent>$([System.IO.File]::ReadAllText('$(GitSubmodulesFile)'))</GitSubmodulesContent>
+      <IsSubmodule>$([System.Text.RegularExpressions.Regex]::IsMatch('$(GitSubmodulesContent)', '$(SubmodulePathExpr)', System.Text.RegularExpressions.RegexOptions.Singleline))</IsSubmodule>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(IsSubmodule)' == 'true' ">
+      <SubmodulePath>$([System.Text.RegularExpressions.Regex]::Match('$(GitSubmodulesContent)', '$(SubmodulePathExpr)', System.Text.RegularExpressions.RegexOptions.Singleline).Groups['path'].Value)</SubmodulePath>
+      <SubmoduleProject>$([System.IO.Path]::Combine('$(GitRoot)', '$(SubmodulePath)', '%(LittleSdkReference.RelativeSource)'))</SubmoduleProject>
+      <SubmoduleProject>$([System.IO.Path]::GetFullPath('$(SubmoduleProject)'))</SubmoduleProject>
+      <IsSubmodule Condition=" Exists('$(SubmoduleProject)') ">true</IsSubmodule>
+      <IsSubmodule Condition=" !Exists('$(SubmoduleProject)') ">false</IsSubmodule>
+    </PropertyGroup>
+
+    <ItemGroup Condition=" '$(IsSubmodule)' == 'true' ">
+      <LittleSdkReference>
+        <IsSubmodule>true</IsSubmodule>
+        <SubmodulePath>$(SubmodulePath)</SubmodulePath>
+        <SubmoduleProject>$(SubmoduleProject)</SubmoduleProject>
+      </LittleSdkReference>
+    </ItemGroup>
+
+  </Target>
+
+  <Target Name="LittleSdk:CollectSubmoduleDependencies" Condition=" @(LittleSdkReference -> '%(IsSubmodule)') == 'true' ">
+    <MSBuild Projects="%(LittleSdkReference.SubmoduleProject)" Targets="GetCoreCompileInputs">
+      <Output TaskParameter="TargetOutputs" ItemName="LittleSdkInputs" />
+    </MSBuild>
+    <MSBuild Projects="%(LittleSdkReference.SubmoduleProject)" Targets="GetCoreCompileOutputs">
+      <Output TaskParameter="TargetOutputs" ItemName="LittleSdkOutputs" />
+    </MSBuild>
+
+    <DumpItems Items="@(LittleSdkInputs)" />
+  </Target>
+
+  <Target Name="LittleSdk:CompileSubmodule" Condition=" @(LittleSdkReference -> '%(IsSubmodule)') == 'true' "
+          Inputs="@(LittleSdkInputs)" Outputs="@(LittleSdkOutputs)">
+    <MSBuild Projects="%(LittleSdkReference.SubmoduleProject)" Properties="Configuration=$(Configuration)" Targets="Build" />
+  </Target>
+
+  <Target Name="LittleSdk:AddSubmoduleReference" Condition=" @(LittleSdkReference -> '%(IsSubmodule)') == 'true' ">
+    <MSBuild Projects="%(LittleSdkReference.SubmoduleProject)" Properties="Configuration=$(Configuration)" Targets="GetTargetPath">
+      <Output TaskParameter="TargetOutputs" PropertyName="_LittleSdkAssembly" />
+    </MSBuild>
+
+    <ItemGroup>
+      <Reference Include="%(LittleSdkReference.AssemblyName)">
+        <HintPath>$(_LittleSdkAssembly)</HintPath>
+        <Private>True</Private>
+      </Reference>
+    </ItemGroup>
+  </Target>
+
+</Project>
