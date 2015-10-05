@@ -86,8 +86,6 @@
     <MSBuild Projects="%(LittleSdkReference.SubmoduleProject)" Targets="GetCoreCompileOutputs">
       <Output TaskParameter="TargetOutputs" ItemName="LittleSdkOutputs" />
     </MSBuild>
-
-    <DumpItems Items="@(LittleSdkInputs)" />
   </Target>
 
   <Target Name="LittleSdk:CompileSubmodule" Condition=" @(LittleSdkReference -> '%(IsSubmodule)') == 'true' "
