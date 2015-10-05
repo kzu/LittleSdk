@@ -2,21 +2,25 @@
 
   <PropertyGroup>
     <IsXBuild Condition="'$(MSBuildRuntimeVersion)' == ''">true</IsXBuild>
-    <ResolveReferencesDependsOn Condition=" '$(IsXBuild)' == 'true' ">
-      <!-- Under Xbuild, just include the binary -->
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(IsXBuild)' == 'true' ">
+    <!-- Under Xbuild, just include the binary -->
+    <ResolveReferencesDependsOn>
       LittleSdk:AddAssemblyReference;
       $(ResolveReferencesDependsOn)
     </ResolveReferencesDependsOn>
-    <ResolveReferencesDependsOn Condition=" '$(IsXBuild)' != 'true' ">
-      LittleSdk:AddSmartReference;
-      $(ResolveReferencesDependsOn)
-    </ResolveReferencesDependsOn>
-    <CompileDependsOn Condition=" '$(IsXBuild)' == 'true' ">
-      <!-- Under Xbuild, just include the binary -->
+    <CompileDependsOn>
       LittleSdk:AddAssemblyReference;
       $(CompileDependsOn)
     </CompileDependsOn>
-    <CompileDependsOn Condition=" '$(IsXBuild)' != 'true' ">
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(IsXBuild)' != 'true' ">
+    <ResolveReferencesDependsOn>
+      LittleSdk:AddSmartReference;
+      $(ResolveReferencesDependsOn)
+    </ResolveReferencesDependsOn>
+    <CompileDependsOn>
       LittleSdk:AddSmartReference;
       $(CompileDependsOn);
     </CompileDependsOn>
@@ -49,7 +53,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="LittleSdk:AddSmartReference" DependsOnTargets="$(AddLittleSdkSmartReferenceDependsOn)" />
+  <Target Name="LittleSdk:AddSmartReference" BeforeTargets="BuildOnlySettings" DependsOnTargets="$(AddLittleSdkSmartReferenceDependsOn)" />
 
   <Target Name="LittleSdk:DetectSubmodule">
 
